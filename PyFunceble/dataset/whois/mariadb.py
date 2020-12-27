@@ -54,7 +54,7 @@ from datetime import datetime
 from typing import Any, Generator, Optional, Union
 
 import sqlalchemy
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import ProgrammingError
 
 import PyFunceble.cli.factory
 import PyFunceble.cli.storage
@@ -73,39 +73,40 @@ class MariaDBWhoisDataset(MariaDBDatasetBase, WhoisDatasetBase):
 
     ORM_OBJ: WhoisRecord = WhoisRecord
 
+    @MariaDBDatasetBase.handle_db_session
     def __contains__(self, value: str) -> bool:
-        with PyFunceble.cli.factory.DBSession.get_new_db_session() as db_session:
+        try:
             return (
-                db_session.query(self.ORM_OBJ)
+                self.db_session.query(self.ORM_OBJ)
                 .filter(
                     sqlalchemy.or_(
                         self.ORM_OBJ.subject == value,
                         self.ORM_OBJ.idna_subject == value,
                     )
                 )
-                .with_entities(sqlalchemy.func.count())
-                .scalar()
-                > 0
+                .first()
+                is not None
             )
+        except ProgrammingError:
+            return None
 
+    @MariaDBDatasetBase.handle_db_session
     def __getitem__(self, value: Any) -> Optional[WhoisRecord]:
-        with PyFunceble.cli.factory.DBSession.get_new_db_session() as db_session:
-            try:
-                result = (
-                    db_session.query(self.ORM_OBJ)
-                    .filter(
-                        sqlalchemy.or_(
-                            self.ORM_OBJ.subject == value,
-                            self.ORM_OBJ.idna_subject == value,
-                        )
+        try:
+            return (
+                self.db_session.query(self.ORM_OBJ)
+                .filter(
+                    sqlalchemy.or_(
+                        self.ORM_OBJ.subject == value,
+                        self.ORM_OBJ.idna_subject == value,
                     )
-                    .one()
                 )
+                .first()
+            )
+        except ProgrammingError:
+            return None
 
-                return result
-            except NoResultFound:
-                return None
-
+    @MariaDBDatasetBase.execute_if_authorized(None)
     def get_content(self) -> Generator[dict, None, None]:
         """
         Provides a generator which provides the next dataset to read.
@@ -116,6 +117,7 @@ class MariaDBWhoisDataset(MariaDBDatasetBase, WhoisDatasetBase):
 
             yield row
 
+    @MariaDBDatasetBase.execute_if_authorized(None)
     def update(self, row: Union[dict, WhoisRecord]) -> "MariaDBWhoisDataset":
         """
         Adds the given dataset into the database if it does not exists.
@@ -140,12 +142,17 @@ class MariaDBWhoisDataset(MariaDBDatasetBase, WhoisDatasetBase):
             )
 
         if not self.is_expired(row):
-            super().update(row)
+            try:
+                super().update(row)
+            except ProgrammingError:
+                pass
         else:
             PyFunceble.facility.Logger.debug("Expired dataset:\n%r", row)
 
         return self
 
+    @MariaDBDatasetBase.execute_if_authorized(None)
+    @MariaDBDatasetBase.handle_db_session
     def cleanup(self) -> "MariaDBWhoisDataset":
         """
         Cleanups the dataset. Meaning that we delete every entries which are
@@ -154,12 +161,14 @@ class MariaDBWhoisDataset(MariaDBDatasetBase, WhoisDatasetBase):
 
         current_timestamp = int(datetime.utcnow().timestamp())
 
-        with PyFunceble.cli.factory.DBSession.get_new_db_session() as db_session:
-            db_session.query(self.ORM_OBJ).filter(
+        try:
+            self.db_session.query(self.ORM_OBJ).filter(
                 self.ORM_OBJ.epoch < current_timestamp
             ).delete(synchronize_session=False)
-            db_session.commit()
+            self.db_session.commit()
+        except ProgrammingError:
+            pass
 
-            PyFunceble.facility.Logger.debug("Deleted all expired WHOIS records")
+        PyFunceble.facility.Logger.debug("Deleted all expired WHOIS records")
 
         return self

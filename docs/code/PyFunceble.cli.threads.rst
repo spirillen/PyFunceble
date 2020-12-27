@@ -13,10 +13,37 @@ PyFunceble.cli.threads.base module
    :show-inheritance:
    :private-members:
 
+PyFunceble.cli.threads.continue\_producer module
+------------------------------------------------
+
+.. automodule:: PyFunceble.cli.threads.continue_producer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+PyFunceble.cli.threads.file\_producer module
+--------------------------------------------
+
+.. automodule:: PyFunceble.cli.threads.file_producer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
 PyFunceble.cli.threads.file\_sorter module
 ------------------------------------------
 
 .. automodule:: PyFunceble.cli.threads.file_sorter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+PyFunceble.cli.threads.inactive\_producer module
+------------------------------------------------
+
+.. automodule:: PyFunceble.cli.threads.inactive_producer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -40,10 +67,19 @@ PyFunceble.cli.threads.miner module
    :show-inheritance:
    :private-members:
 
-PyFunceble.cli.threads.producer module
---------------------------------------
+PyFunceble.cli.threads.producer\_base module
+--------------------------------------------
 
-.. automodule:: PyFunceble.cli.threads.producer
+.. automodule:: PyFunceble.cli.threads.producer_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+PyFunceble.cli.threads.stdout\_producer module
+----------------------------------------------
+
+.. automodule:: PyFunceble.cli.threads.stdout_producer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -71,6 +107,15 @@ PyFunceble.cli.threads.utils module
 -----------------------------------
 
 .. automodule:: PyFunceble.cli.threads.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+PyFunceble.cli.threads.whois\_producer module
+---------------------------------------------
+
+.. automodule:: PyFunceble.cli.threads.whois_producer
    :members:
    :undoc-members:
    :show-inheritance:

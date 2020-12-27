@@ -145,44 +145,49 @@ class TesterThread(ThreadsBase):
             PyFunceble.cli.utils.stdout.print_single_line("X")
             return None
 
-        continue_object = PyFunceble.cli.utils.testing.get_continue_databaset_object()
+        if test_dataset["type"] != "single":
+            continue_object = (
+                PyFunceble.cli.utils.testing.get_continue_databaset_object()
+            )
 
-        if test_dataset["output_dir"]:
-            try:
-                continue_object.set_base_directory(test_dataset["output_dir"])
-            except NotImplementedError:
-                pass
+            if test_dataset["output_dir"]:
+                try:
+                    continue_object.set_base_directory(test_dataset["output_dir"])
+                except NotImplementedError:
+                    pass
 
-            if continue_object.exists(test_dataset):
-                # A means that it was ignored because of the continue
-                # logic.
+                if continue_object.exists(test_dataset):
+                    # A means that it was ignored because of the continue
+                    # logic.
 
-                PyFunceble.facility.Logger.info(
-                    "Ignoring %r because it was already tested previously "
-                    "(continue).",
-                    test_dataset["idna_subject"],
+                    PyFunceble.facility.Logger.info(
+                        "Ignoring %r because it was already tested previously "
+                        "(continue).",
+                        test_dataset["idna_subject"],
+                    )
+
+                    PyFunceble.cli.utils.stdout.print_single_line("A")
+                    return None
+
+            if "from_inactive" not in test_dataset:
+                inactive_object = (
+                    PyFunceble.cli.utils.testing.get_inactive_dataset_object()
                 )
 
-                PyFunceble.cli.utils.stdout.print_single_line("A")
-                return None
+                if inactive_object.exists(test_dataset):
+                    # I means that it was ignored because of the inactive (db)
+                    # logic.
 
-        if "from_inactive" not in test_dataset:
-            inactive_object = PyFunceble.cli.utils.testing.get_inactive_dataset_object()
+                    PyFunceble.facility.Logger.info(
+                        "Ignoring %r because it was already tested previously "
+                        "(inactive).",
+                        test_dataset["idna_subject"],
+                    )
 
-            if inactive_object.exists(test_dataset):
-                # I means that it was ignored because of the inactive (db)
-                # logic.
+                    PyFunceble.cli.utils.stdout.print_single_line("I")
 
-                PyFunceble.facility.Logger.info(
-                    "Ignoring %r because it was already tested previously "
-                    "(inactive).",
-                    test_dataset["idna_subject"],
-                )
-
-                PyFunceble.cli.utils.stdout.print_single_line("I")
-
-                self.add_to_output_queue((test_dataset, "ignored_inactive"))
-                return None
+                    self.add_to_output_queue((test_dataset, "ignored_inactive"))
+                    return None
 
         testing_object = self.get_testing_object(
             test_dataset["subject_type"], test_dataset["checker_type"]
@@ -249,23 +254,26 @@ class TesterThread(ThreadsBase):
                 PyFunceble.facility.Logger.debug(
                     "Adding callback into submitted: %r", submitted
                 )
-                submitted.add_done_callback(self.done_callback)
+                # submitted.add_done_callback(self.done_callback)
                 PyFunceble.facility.Logger.debug(
                     "Added callback into submitted: %r", submitted
                 )
 
                 submitted_list.append(submitted)
 
-                PyFunceble.facility.Logger.info(
-                    "Sleeping: %rs for our own safety :-)",
-                    PyFunceble.storage.CONFIGURATION.cli_testing.cooldown_time,
-                )
-                # Apply cooldowntime.
-                time.sleep(PyFunceble.storage.CONFIGURATION.cli_testing.cooldown_time)
-                PyFunceble.facility.Logger.info(
-                    "Slept: %rs for our own safety :-)",
-                    PyFunceble.storage.CONFIGURATION.cli_testing.cooldown_time,
-                )
+                if PyFunceble.storage.CONFIGURATION.cli_testing.cooldown_time > 0:
+                    PyFunceble.facility.Logger.info(
+                        "Sleeping: %rs for our own safety :-)",
+                        PyFunceble.storage.CONFIGURATION.cli_testing.cooldown_time,
+                    )
+                    # Apply cooldowntime.
+                    time.sleep(
+                        PyFunceble.storage.CONFIGURATION.cli_testing.cooldown_time
+                    )
+                    PyFunceble.facility.Logger.info(
+                        "Slept: %rs for our own safety :-)",
+                        PyFunceble.storage.CONFIGURATION.cli_testing.cooldown_time,
+                    )
 
             wait_until_completion(submitted_list, raise_exc=True)
 
